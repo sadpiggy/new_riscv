@@ -85,14 +85,19 @@ public:
         int fuck=20;
         while (true)
         {
-           // reg[0]=0u;
+           if (reg[0]!=0u)cout<<"不等于"<<endl;
             WB();
-           //reg[0]=0u;
+            if (reg[0]!=0u)cout<<"不等于"<<endl;
             MEM();
-            //reg[0]=0u;
+            if (reg[0]!=0u)cout<<"不等于"<<endl;
             EXE();
-            //reg[0]=0u;
+            if (reg[0]!=0u)cout<<"不等于"<<endl;
             ID();
+
+            //cout<<program_count<<endl;
+
+           // cout<<(reg[10]&255u)<<endl;
+            if (reg[0]!=0u)cout<<"不等于"<<endl;
             IF();
             if (check())break;
 
@@ -115,10 +120,8 @@ public:
     {
         //先写个faker，再写个真的
         if (buffers[1].is_null)return;
-
-        //cout<<"ID"<<endl;
-
         buffers[1].is_null=true;
+        buffers[2]=buffers[1];
         unsigned now_instruction=buffers[1].now_instruction;
         if (now_instruction==267388179u){is_stop=true;return;}
         buffers[2].is_null=false;
@@ -155,6 +158,7 @@ public:
                     reg_rs1 = buffers[2].reg_rs1 = buffers[3].write_to_reg;
                 } else {
                     reg_rs1=buffers[2].reg_rs1 =little_read();
+                    //cout<<reg_rs1<<endl;
                 }
             }
             if (buffers[3].rd==buffers[2].rs2){
@@ -162,6 +166,7 @@ public:
                     reg_rs2 = buffers[2].reg_rs2 = buffers[3].write_to_reg;
                 } else {
                     reg_rs2=buffers[2].reg_rs2=little_read();
+                   // cout<<reg_rs2<<endl;
                 }
             }
         }
@@ -238,14 +243,6 @@ public:
         unsigned reg_rs2=buffers[2].reg_rs2;
         unsigned imm;
         unsigned rd=buffers[2].rd;
-//        if (rd==1){
-//            cout<<"opcode=="<<buffers[2].opcode<<endl;
-//            cout<<"func=="<<buffers[2].func<<endl;
-//        }
-
-
-//        cout<<"func_=="<<buffers[2].func<<endl;
-//        cout<<"func=="<<get_func(now_introduction)<<endl;
 
         if (opcode==55u){//lui
             imm=get_U_imm(now_introduction);
@@ -255,6 +252,7 @@ public:
             return;
         }
         if (opcode==23u){//auipc
+            cout<<"auipc"<<endl;
             imm=get_U_imm(now_introduction);
             buffers[3].is_write_to_reg=true;
             buffers[3].write_to_reg=buffers[3].pipeline_pc+imm;
@@ -268,78 +266,92 @@ public:
             return;
         }
         if (opcode==99u){//B
+           // cout<<"B"<<endl;
             imm=get_B_imm(now_introduction);
            if (func==0u){//beq
                if (reg_rs1!=reg_rs2){
+                 //  cout<<"fail"<<endl;
                    program_count=buffers[3].pipeline_pc+4u;
                    buffers[1].clear();
                    return;
                }
+               return;
            }
 
            if (func==1u){//bne
                if (reg_rs1==reg_rs2){
+                  // cout<<"fail"<<endl;
                    program_count=buffers[3].pipeline_pc+4u;
                    buffers[1].clear();
                    return;
                }
+               return;
            }
 
             if (func==4u){//blt
                 if (int(reg_rs1)>=int(reg_rs2)){
+                   // cout<<"fail"<<endl;
                     program_count=buffers[3].pipeline_pc+4u;
                     buffers[1].clear();
                     return;
                 }
+                return;
             }
 
             if (func==5u){//bge
                 if (int(reg_rs1)<int(reg_rs2)){
+                   // cout<<"fail"<<endl;
                     program_count=buffers[3].pipeline_pc+4u;
                     buffers[1].clear();
                     return;
                 }
+                return;
             }
 
             if (func==6u){//bltu
                 if ((reg_rs1)>=(reg_rs2)){
+                  //  cout<<"fail"<<endl;
                     program_count=buffers[3].pipeline_pc+4u;
                     buffers[1].clear();
                     return;
                 }
+                return;
             }
 
             if (func==7u){//bgeu
                 if ((reg_rs1)<(reg_rs2)){
+                 //   cout<<"fail"<<endl;
                     program_count=buffers[3].pipeline_pc+4u;
                     buffers[1].clear();
                     return;
                 }
+                return;
             }
 
         }
         if (opcode==3u){//L
+            //cout<<"L"<<endl;
             buffers[3].is_write_to_reg=true;
             buffers[3].is_read_from_mem.first=true;
             imm=get_I_imm(now_introduction);
             if (buffers[3].rd==0){buffers[3].is_write_to_reg=false;buffers[3].is_read_from_mem.first=false;return;}
             if (func==0u){//lb
+                //<<"lb"<<endl;
                 buffers[3].index=imm+reg_rs1;
                 buffers[3].is_read_from_mem.second=1;
                 buffers[3].is_unsign=false;
                 return;
             }
             if (func==1u){//lh
+               // cout<<"lh"<<endl;
                 buffers[3].index=imm+reg_rs1;
                 buffers[3].is_read_from_mem.second=2;
                 buffers[3].is_unsign=false;
                 return;
             }
             if (func==2u){//lw
+               // cout<<"lw"<<endl;
                 buffers[3].index=imm+reg_rs1;
-
-
-
                 buffers[3].is_read_from_mem.second=4;
                 buffers[3].is_unsign=false;
                 return;
@@ -358,6 +370,7 @@ public:
             }
         }
         if (opcode==35u){//s
+           // cout<<"S"<<endl;
             imm=get_S_imm(now_introduction);
             buffers[3].is_write_to_mem.first=true;
             buffers[3].index=reg_rs1+imm;
@@ -378,7 +391,7 @@ public:
                 return;
             }
             if (func==2u){//sw
-                buffers[3].is_write_to_mem.second=2;
+                buffers[3].is_write_to_mem.second=4;
                 unsigned value1=reg_rs2;
                 unsigned value4=value1&255u;
                 value1=value1>>8u;
@@ -394,6 +407,7 @@ public:
             }
         }
         if (opcode==19u){
+            //cout<<"19"<<endl;
             if (buffers[3].rd==0){buffers[3].is_write_to_reg=false;return;}
             if (func==0u||func==2U||func==3u||func==4U||func==6u||func==7u)
             {
@@ -433,22 +447,25 @@ public:
             }
             if (func==1u){//slli
                 buffers[3].is_write_to_reg=true;
-                buffers[3].write_to_reg=reg_rs1<<rs2;
+                unsigned shamt=get_shamt(now_introduction);
+                buffers[3].write_to_reg=reg_rs1<<shamt;
                 return;
             }
             if (func==5u){
                 //srli
                 if (get_30_bit(now_introduction)==0u) {
                     buffers[3].is_write_to_reg = true;
-                    buffers[3].write_to_reg = reg_rs1 >> rs2;
+                    unsigned shamt=get_shamt(now_introduction);
+                    buffers[3].write_to_reg = reg_rs1 >> shamt;
                     return;
                 }
                 //srai
-                unsigned head,value;
+                unsigned head,value,shamt;
+                shamt=get_shamt(now_introduction);
                 if ((reg_rs1>>31u)==0u)head=0u;
                 else head=1u;
                 head=head<<31u;
-                for (unsigned int i=1;i<=rs2;i++)
+                for (unsigned int i=1;i<=shamt;i++)
                 {
                     value=(reg_rs1>>1u)|head;
                 }
@@ -458,9 +475,11 @@ public:
             }
         }
         if (opcode==51u){
+           //cout<<"51"<<endl;
             buffers[3].is_write_to_reg=true;//应该是
             if (buffers[3].rd==0){buffers[3].is_write_to_reg=false;return;}
             if (func==0u){
+               // cout<<"o"<<endl;
                 if (get_30_bit(now_introduction)==0u){//add
                     buffers[3].write_to_reg=reg_rs1+reg_rs2;
                     return;
@@ -470,24 +489,29 @@ public:
                 return;
             }
             if (func==1u){//sll
-                buffers[3].write_to_reg=reg_rs1<<reg_rs2;
+                //cout<<"sll"<<endl;
+                buffers[3].write_to_reg=reg_rs1<<(reg_rs2&(31u));
                 return;
             }
             if (func==2u){//slt
+               // cout<<"2"<<endl;
                 if (int(reg_rs1)<int(reg_rs2))buffers[3].write_to_reg=1u;
                 else buffers[3].write_to_reg=0u;
                 return;
             }
             if (func==3u){//sltu
+                //cout<<"3"<<endl;
                 if ((reg_rs1)<(reg_rs2))buffers[3].write_to_reg=1u;
                 else buffers[3].write_to_reg=0u;
                 return;
             }
             if (func==4u){//xor
+                //cout<<"4"<<endl;
                 buffers[3].write_to_reg=reg_rs1^reg_rs2;
                 return;
             }
             if (func==5u){
+                //cout<<"5"<<endl;
                 if (get_30_bit(now_introduction)==0u){//srl
                     buffers[3].write_to_reg=reg_rs1>>(reg_rs2&(31u));
                     return;
@@ -507,13 +531,16 @@ public:
                 return;
             }
             if (func==6u){//or
+                //cout<<"6"<<endl;
                 buffers[3].write_to_reg=reg_rs1|reg_rs2;
                 return;
             }
             if (func==7u){//and
+               // cout<<"7"<<endl;
                 buffers[3].write_to_reg=reg_rs1&reg_rs2;
             }
         }
+       // cout<<"lalal";
     }
 
     void MEM()
@@ -522,6 +549,9 @@ public:
         buffers[3].is_null=true;
         buffers[4]=buffers[3];
         buffers[4].is_null=false;
+
+
+        //if (buffers[3].is_write_to_reg&&buffers[3].is_write_to_mem.first)cout<<"lasdjklkl"<<endl;
 
         if (buffers[3].is_write_to_mem.first)
         {
@@ -601,10 +631,13 @@ public:
         buffers[0]=buffers[4];
         buffers[0].is_null=false;
 
+        //if (buffers[4].rd==0){if (buffers[4].is_read_from_mem.first){cout<<buffers[4].write_to_reg<<endl;}}
+
         if (buffers[4].is_write_to_reg)
         {
             reg[buffers[4].rd]=buffers[4].write_to_reg;
         }
+       // if (reg[0]!=0){cout<<"???"<<endl;}
     }
 
     unsigned get_now_instruction(unsigned pc)
@@ -618,6 +651,7 @@ public:
     }
 
     unsigned little_read(){
+
         unsigned index=buffers[3].index;
         unsigned value;
         if (buffers[3].is_read_from_mem.second==1){
