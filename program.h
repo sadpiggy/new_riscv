@@ -72,6 +72,12 @@ public:
     };
 
     buffer buffers[5];
+    //0\1不跳，2\3跳
+    int branch_pre[4096];
+
+    static unsigned  int get_hash(unsigned int value){
+        return (value/4u)%4096u;
+    }
 
     bool check(){
         if (is_stop&&buffers[1].is_null&&buffers[2].is_null&&buffers[3].is_null&&buffers[4].is_null)return true;
@@ -81,6 +87,9 @@ public:
     void run()
     {
         input();
+
+        for (int i=0;i<=4095;i++)branch_pre[i]=1;
+
         buffers[0].is_null=false;
         int fuck=20;
         while (true)
@@ -173,10 +182,14 @@ public:
 
 
         //然后跳转
+
+        unsigned int pos=get_hash(program_count);
+
         if (opcode==111u){//jal
             //imm用的时候再存储吧
             //cout<<"jal"<<endl;
             unsigned imm=get_J_imm(now_instruction);
+            //跳
             program_count+=imm;
             return;
         }
@@ -192,7 +205,8 @@ public:
         {
            // cout<<"B"<<endl;
             unsigned imm=get_B_imm(now_instruction);
-            program_count+=imm;
+            if (branch_pre[pos]>=2){program_count+=imm;}
+            else program_count+=4u;
             return;
         }
 
@@ -204,30 +218,6 @@ public:
     {
         if (buffers[2].is_null)return;
         buffers[2].is_null=true;
-//        unsigned forward_rd=buffers[3].rd;
-//        unsigned forward_write_to_rd=buffers[3].write_to_reg;
-
-//        if (buffers[0].is_write_to_reg)
-//        {
-//            if (buffers[0].rd==buffers[2].rs1){
-//                buffers[2].reg_rs1=buffers[0].write_to_reg;
-//            }
-//            if (buffers[0].rd==buffers[2].rs2){
-//                buffers[2].reg_rs2=buffers[0].write_to_reg;
-//            }
-//        }
-//
-//        //不肯定是对的
-//        if (buffers[4].is_write_to_reg){
-//            if (buffers[4].rd==buffers[2].rs1){
-//                buffers[2].reg_rs1=buffers[4].write_to_reg;
-//            }
-//            if (buffers[4].rd==buffers[2].rs2){
-//                buffers[2].reg_rs2=buffers[4].write_to_reg;
-//            }
-//        }
-
-
 
         buffers[3]=buffers[2];
         buffers[3].is_null= false;
@@ -268,63 +258,161 @@ public:
         if (opcode==99u){//B
            // cout<<"B"<<endl;
             imm=get_B_imm(now_introduction);
+            unsigned pos=get_hash(buffers[3].pipeline_pc);
            if (func==0u){//beq
+               //实际不跳
                if (reg_rs1!=reg_rs2){
-                 //  cout<<"fail"<<endl;
-                   program_count=buffers[3].pipeline_pc+4u;
-                   buffers[1].clear();
+                 //  预测跳
+                 if (branch_pre[pos]>=2) {
+                     program_count = buffers[3].pipeline_pc + 4u;
+                     buffers[1].clear();
+                     branch_pre[pos]-=1;
+                     return;
+                 }
+                 //预测不跳
+                 if (branch_pre[pos]!=0)branch_pre[pos]--;
                    return;
                }
+               //实际跳
+               //预测跳
+               if (branch_pre[pos]>=2){
+                   if (branch_pre[pos]!=3)branch_pre[pos]++;
+                   return;
+               }
+               //预测不跳
+               program_count=buffers[3].pipeline_pc+imm;
+               buffers[1].clear();
+               branch_pre[pos]+=1;
                return;
            }
 
            if (func==1u){//bne
                if (reg_rs1==reg_rs2){
-                  // cout<<"fail"<<endl;
-                   program_count=buffers[3].pipeline_pc+4u;
-                   buffers[1].clear();
+                   //  预测跳
+                   if (branch_pre[pos]>=2) {
+                       program_count = buffers[3].pipeline_pc + 4u;
+                       buffers[1].clear();
+                       branch_pre[pos]-=1;
+                       return;
+                   }
+                   //预测不跳
+                   if (branch_pre[pos]!=0)branch_pre[pos]--;
                    return;
                }
+               //实际跳
+               //预测跳
+               if (branch_pre[pos]>=2){
+                   if (branch_pre[pos]!=3)branch_pre[pos]++;
+                   return;
+               }
+               //预测不跳
+               program_count=buffers[3].pipeline_pc+imm;
+               buffers[1].clear();
+               branch_pre[pos]+=1;
                return;
            }
 
             if (func==4u){//blt
                 if (int(reg_rs1)>=int(reg_rs2)){
-                   // cout<<"fail"<<endl;
-                    program_count=buffers[3].pipeline_pc+4u;
-                    buffers[1].clear();
+                    //  预测跳
+                    if (branch_pre[pos]>=2) {
+                        program_count = buffers[3].pipeline_pc + 4u;
+                        buffers[1].clear();
+                        branch_pre[pos]-=1;
+                        return;
+                    }
+                    //预测不跳
+                    if (branch_pre[pos]!=0)branch_pre[pos]--;
                     return;
                 }
+                //实际跳
+                //预测跳
+                if (branch_pre[pos]>=2){
+                    if (branch_pre[pos]!=3)branch_pre[pos]++;
+                    return;
+                }
+                //预测不跳
+                program_count=buffers[3].pipeline_pc+imm;
+                buffers[1].clear();
+                branch_pre[pos]+=1;
                 return;
             }
 
             if (func==5u){//bge
                 if (int(reg_rs1)<int(reg_rs2)){
-                   // cout<<"fail"<<endl;
-                    program_count=buffers[3].pipeline_pc+4u;
-                    buffers[1].clear();
+                    //  预测跳
+                    if (branch_pre[pos]>=2) {
+                        program_count = buffers[3].pipeline_pc + 4u;
+                        buffers[1].clear();
+                        branch_pre[pos]-=1;
+                        return;
+                    }
+                    //预测不跳
+                    if (branch_pre[pos]!=0)branch_pre[pos]--;
                     return;
                 }
+                //实际跳
+                //预测跳
+                if (branch_pre[pos]>=2){
+                    if (branch_pre[pos]!=3)branch_pre[pos]++;
+                    return;
+                }
+                //预测不跳
+                program_count=buffers[3].pipeline_pc+imm;
+                buffers[1].clear();
+                branch_pre[pos]+=1;
                 return;
             }
 
             if (func==6u){//bltu
                 if ((reg_rs1)>=(reg_rs2)){
-                  //  cout<<"fail"<<endl;
-                    program_count=buffers[3].pipeline_pc+4u;
-                    buffers[1].clear();
+                    //  预测跳
+                    if (branch_pre[pos]>=2) {
+                        program_count = buffers[3].pipeline_pc + 4u;
+                        buffers[1].clear();
+                        branch_pre[pos]-=1;
+                        return;
+                    }
+                    //预测不跳
+                    if (branch_pre[pos]!=0)branch_pre[pos]--;
                     return;
                 }
+                //实际跳
+                //预测跳
+                if (branch_pre[pos]>=2){
+                    if (branch_pre[pos]!=3)branch_pre[pos]++;
+                    return;
+                }
+                //预测不跳
+                program_count=buffers[3].pipeline_pc+imm;
+                buffers[1].clear();
+                branch_pre[pos]+=1;
                 return;
             }
 
             if (func==7u){//bgeu
                 if ((reg_rs1)<(reg_rs2)){
-                 //   cout<<"fail"<<endl;
-                    program_count=buffers[3].pipeline_pc+4u;
-                    buffers[1].clear();
+                    //  预测跳
+                    if (branch_pre[pos]>=2) {
+                        program_count = buffers[3].pipeline_pc + 4u;
+                        buffers[1].clear();
+                        branch_pre[pos]-=1;
+                        return;
+                    }
+                    //预测不跳
+                    if (branch_pre[pos]!=0)branch_pre[pos]--;
                     return;
                 }
+                //实际跳
+                //预测跳
+                if (branch_pre[pos]>=2){
+                    if (branch_pre[pos]!=3)branch_pre[pos]++;
+                    return;
+                }
+                //预测不跳
+                program_count=buffers[3].pipeline_pc+imm;
+                buffers[1].clear();
+                branch_pre[pos]+=1;
                 return;
             }
 
